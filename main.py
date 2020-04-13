@@ -15,7 +15,7 @@ bot = telebot.TeleBot("1260151892:AAG8if7VcDgpm63FaaJSFlVku-grhabeo-o")
 #global variables
 global prodaDe
 global adTime
-adTime = 5
+adTime = 2
 global adOnAir
 adOnAir = False
 global adTimeLeft
@@ -35,6 +35,8 @@ sizeOfHand = 5 #quantidade de cartas que se pode ter na mão
 global markup
 #lists
 global choosenPhrase
+global palavroes
+palavroes = ['caralho','puta', 'pqp', 'cu', 'buceta', 'pau']
 
 # Answers given to a question
 givenAnswers = list()
@@ -45,7 +47,7 @@ joinedPeople = list()
 THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
 
 allNicknames = list()
-with open(os.path.join(THIS_FOLDER, 'nicknames.txt')) as myfile:
+with open(os.path.join(THIS_FOLDER, 'nicknames.txt'), encoding="utf8") as myfile:
     for line in myfile:
         allNicknames.append(line.replace("\n",""))
 myfile.close()
@@ -173,52 +175,10 @@ def send_question(message):
     bot.send_message(message.chat.id, "Cartas de perguntas restantes: " + str(len(gameQuestions)))
     bot.send_message(message.chat.id, "<b>Escolha sua resposta:</b>", reply_markup=markup, parse_mode= 'HTML')
 
-
-@bot.message_handler(func=lambda message: gameOn, content_types=['text'])
-def handle_texts(message):
-    global questioning, voting
-    global currentQuestion
-    global justVoted
-    global choosenPhrase
-
-    def voting_mode():
-        global justVoted
-        justVoted = True
-        markup = types.ReplyKeyboardMarkup(row_width=1)
-        for answer in givenAnswers:
-            markup.add(types.KeyboardButton(answer))
-            givenAnswers.remove(answer)
-        bot.send_message(message.chat.id, "<b>Qual a melhor resposta?</b>", reply_markup=markup, parse_mode= 'HTML')
-
-    if justVoted:
-        justVoted = False
-        bot.send_message(message.chat.id, "<b>Tu votou!</b>", parse_mode= 'HTML')
-        send_question(message)
-    else:
-        if questioning:
-            if (message.text) in myAnswers:
-                currentQuestion = currentQuestion.replace("___","<b>" + message.text + "</b>", 1)
-                myAnswers.remove(message.text) #tira a resposta dada
-                add_one_answer() #pega mais uma carta de resposta
-                givenAnswers.append(message.text)
-                if "___" in currentQuestion:
-                    bot.send_message(message.chat.id, currentQuestion, parse_mode= 'HTML')
-                    update_keyboard()
-                    bot.send_message(message.chat.id, "<b>Escolha mais uma resposta:</b>", reply_markup=markup, parse_mode= 'HTML')
-                else:
-                    bot.send_message(message.chat.id, "Frase completa:", parse_mode= 'HTML')
-                    bot.send_message(message.chat.id, currentQuestion, parse_mode= 'HTML')
-                    questioning = False
-
-                #voting = True
-                #voting_mode()
-#            else:
-#                bot.send_message(message.chat.id, "Desculpe mas sua resposta não é uma resposta válida")
-#                bot.send_message(message.chat.id, message.chat.first_name)
-#        else:
-#            bot.send_message(message.chat.id, "Calma jovem! Espere a pergunta!")
-
-#functions
+@bot.message_handler(content_types=['text'])
+def function_name(message):
+    if (any(x in message.text for x in palavroes)):
+        bot.reply_to(message, "Estamos ao vivo, não fale palavrão! Menos 300 estalecas!")
 
 def update_keyboard():
     for answer in myAnswers:
@@ -254,11 +214,12 @@ def list_brothers(message):
         bot.send_message(message.chat.id, person.name + ", " + person.nickname)
 
 def provaStart(message, provaDe, numero, emoji):
-      menuKeyboard = types.InlineKeyboardMarkup()
-      for x in range(numero):
-          menuKeyboard.add(types.InlineKeyboardButton(emoji, callback_data='button'))
+    menuKeyboard = types.InlineKeyboardMarkup()
+    for x in range(numero):
+      menuKeyboard.add(types.InlineKeyboardButton(emoji, callback_data='button'))
 
-      bot.send_message(message.chat.id, "Menu", reply_markup=menuKeyboard)
+
+    bot.send_message(message.chat.id, "Escolha um: ", reply_markup=menuKeyboard)
 
 
 
