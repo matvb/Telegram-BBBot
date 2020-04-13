@@ -43,6 +43,7 @@ givenAnswers = list()
 myAnswers = list()
 gameQuestions = list()
 joinedPeople = list()
+gameOrder = list()
 
 THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
 
@@ -71,7 +72,8 @@ class joinedPerson():
 @bot.message_handler(commands=['join'])
 def send_join(message):
     if adOnAir:
-        if (message.chat.first_name, message.chat.id) not in joinedPeople:   #erro
+
+        if not any(x.id == message.chat.id for x in joinedPeople):   #erro
             joinedPeople.append(joinedPerson(message.chat.first_name, message.chat.id))
             bot.send_message(message.chat.id, message.chat.first_name + " entrou na brincadeira!")
         else:
@@ -110,6 +112,7 @@ def send_about(message):
         provaTexto = random.choice(allProvaSorte).replace("GANHADOR", provaDe).replace("NUMERO",str(numero))
         emoji = provaTexto[-1]
         bot.send_message(message.chat.id, provaTexto)
+        sorteioOrdem(message)
         provaStart(message, provaDe, numero, emoji)
     else:
         bot.send_message(message.chat.id, "Ainda ta na novela...")
@@ -180,6 +183,16 @@ def palavrao_handler(message):
     if (any(x in message.text for x in palavroes)):
         bot.reply_to(message, "Estamos ao vivo, não fale palavrão! Menos 300 estalecas!")
 
+
+@bot.callback_query_handler(lambda query: query.data == "y")
+def process_callback_1(query):
+  print('acertei')
+
+@bot.callback_query_handler(lambda query: query.data == "n")
+def process_callback_1(query):
+  print('errei')
+
+
 def update_keyboard():
     for answer in myAnswers:
         markup.add(types.KeyboardButton(answer))
@@ -213,10 +226,26 @@ def list_brothers(message):
     for person in joinedPeople:
         bot.send_message(message.chat.id, person.name + ", " + person.nickname)
 
+def sorteioOrdem(message):
+    allPeople = joinedPeople
+    for x in range(len(joinedPeople)):
+        randomPlayer = random.choice(joinedPeople)
+        gameOrder.append(randomPlayer)
+        allPeople.remove(randomPlayer)
+    print("ordem: \n")
+    for x in range(len(gameOrder)):
+        print (gameOrder[x].name),
+
+
 def provaStart(message, provaDe, numero, emoji):
     menuKeyboard = types.InlineKeyboardMarkup()
+    winner = random.randrange(numero)
     for x in range(numero):
-      menuKeyboard.add(types.InlineKeyboardButton(emoji, callback_data='button'))
+        if x == winner:
+            menuKeyboard.add(types.InlineKeyboardButton(emoji, callback_data='y'))
+        else:
+            menuKeyboard.add(types.InlineKeyboardButton(emoji, callback_data='n'))
+
 
 
     bot.send_message(message.chat.id, "Escolha um: ", reply_markup=menuKeyboard)
