@@ -175,8 +175,8 @@ def send_question(message):
     bot.send_message(message.chat.id, "Cartas de perguntas restantes: " + str(len(gameQuestions)))
     bot.send_message(message.chat.id, "<b>Escolha sua resposta:</b>", reply_markup=markup, parse_mode= 'HTML')
 
-@bot.message_handler(content_types=['text'])
-def function_name(message):
+@bot.message_handler(func=lambda message: gameOn, content_types=['text'])
+def palavrao_handler(message):
     if (any(x in message.text for x in palavroes)):
         bot.reply_to(message, "Estamos ao vivo, não fale palavrão! Menos 300 estalecas!")
 
