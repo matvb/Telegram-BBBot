@@ -24,6 +24,12 @@ global gameStarted
 gameStarted = False
 global isProva
 isProva = False
+global provaDe
+global numeroItensProva
+global emoji
+global winner
+global menuItensProva
+global itensRetirados
 
 
 #lists
@@ -31,10 +37,12 @@ global palavroes
 palavroes = ['caralho','puta', 'pqp', 'cu', 'buceta', 'pau']
 global gameOrder
 global gameOrderFixed
+global brothersInGame
 
-BrothersInGame = list()
+brothersInGame = list()
 gameOrder = list()
 gameOrderFixed = list()
+itensRetirados = list()
 
 THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
 
@@ -60,6 +68,7 @@ class brother():
         self.isAnjo = False
         self.isSalvo = False
         self.isEmparedado = False
+        self.isMonstro = False
 
     def viraLider(self):
         self.isLider = True
@@ -85,14 +94,21 @@ class brother():
     def acabaEmparedado(self):
         self.isEmparedado = False
 
+    def viraMonstro(self):
+        self.isMonstro = True
+
+    def acabaMonstro(self):
+        self.isMonstro = False
+
 
 #Handlers
 
 @bot.message_handler(commands=['join'])
 def send_join(message):
+    global brothersInGame
     if adOnAir:
-        if not any(x.id == message.chat.id for x in BrothersInGame):   #erro
-            BrothersInGame.append(brother(message.chat.first_name, message.chat.id))
+        if not any(x.id == message.chat.id for x in brothersInGame):   #erro
+            brothersInGame.append(brother(message.chat.first_name, message.chat.id))
             bot.send_message(message.chat.id, message.chat.first_name + " entrou na brincadeira!")
         else:
             bot.send_message(message.chat.id, "Tu já tá, fera!")
@@ -100,11 +116,11 @@ def send_join(message):
         bot.send_message(message.chat.id, "Quem sabe ano que vem...")
 
 
-@bot.message_handler(commands=['showBrothers'])
+@bot.message_handler(commands=['show_brothers'])
 def send_show_joined(message):
     bot.send_message(message.chat.id, "Brothers na casa:")
     list_brothers(message)
-    # for person in BrothersInGame:
+    # for person in brothersInGame:
     #     bot.send_message(message.chat.id, "Nome: " + person.name + " ID: " + str(person.id))
 
 
@@ -117,22 +133,25 @@ def send_show_ad_time(message):
 
 @bot.message_handler(commands=['about'])
 def send_about(message):
-    bot.send_message(message.chat.id, """Bot para jogar "Cards Against Humanity" mas com um nome menos agressivo.""")
+    bot.send_message(message.chat.id, """Bot para se sentir na casa mais vigiada do Brasil.""")
     bot.send_message(message.chat.id, "by: Mateus Villas Boas")
 
 @bot.message_handler(commands=['prova_lider'])
 def send_about(message):
     global isProva
+    global provaDe
+    global numeroItensProva
+    global emoji
     if gameOn:
         isProva = True
         provaDe = "líder"
         bot.send_message(message.chat.id, "Vamos começar a prova de liderança de hoje!")
-        numero = random.randrange(1, 5)
-        provaTexto = random.choice(allProvaSorte).replace("GANHADOR", provaDe).replace("NUMERO",str(numero))
+        numeroItensProva = random.randrange(5, 10)
+        provaTexto = random.choice(allProvaSorte).replace("GANHADOR", provaDe).replace("NUMERO",str(numeroItensProva))
         emoji = provaTexto[-1]
         bot.send_message(message.chat.id, provaTexto)
         sorteioOrdem(message)
-        provaStart(message, provaDe, numero, emoji)
+        provaStart(message)
     else:
         bot.send_message(message.chat.id, "Ainda ta na novela...")
 
@@ -166,36 +185,7 @@ def send_stop(message):
     else:
         bot.send_message(message.chat.id, "Já nem tinha começado, otário!")
 
-@bot.message_handler(commands=['banco_perguntas'])
-def send_banco_perguntas(message):
-    if len(gameQuestions) != len(allQuestions):
-        bot.send_message(message.chat.id, "Inicializando Banco de Perguntas!")
-        inicialize_gameQuestions()
-        inicialize_my_answers()
-    else:
-        bot.send_message(message.chat.id, "Banco de Perguntas já está cheio!")
 
-
-@bot.message_handler(func=lambda message: gameOn, commands=['pergunta'])
-def send_question(message):
-    global questioning
-    global currentQuestion
-    global markup
-    questioning = True
-    if len(gameQuestions) == 0:
-        bot.send_message(message.chat.id, "<b>Embaralhando cartas de perguntas.</b>", parse_mode= 'HTML')
-        inicialize_gameQuestions()
-    if len(myAnswers) == 0:
-        inicialize_my_answers()
-    currentQuestion = gameQuestions[random.randint(0, len(gameQuestions)-1)]
-    gameQuestions.remove(currentQuestion)
-    bot.send_message(message.chat.id, "<b>Pergunta:</b>", parse_mode= 'HTML')
-    bot.send_message(message.chat.id, currentQuestion, parse_mode= 'HTML')
-
-    markup = types.ReplyKeyboardMarkup(row_width=1, one_time_keyboard=True)
-    update_keyboard()
-    bot.send_message(message.chat.id, "Cartas de perguntas restantes: " + str(len(gameQuestions)))
-    bot.send_message(message.chat.id, "<b>Escolha sua resposta:</b>", reply_markup=markup, parse_mode= 'HTML')
 
 @bot.message_handler(func=lambda message: gameOn, content_types=['text'])
 def palavrao_handler(message):
@@ -209,10 +199,10 @@ def process_callback_win(query):
     global gameOrder
     global isProva
     if(query.message.chat.id == gameOrder[0].id):
-      bot.send_message(query.message.chat.id, "Acertou!")
-      for brother in BrothersInGame:
-        if brother.id == gameOrder[0].id:
-            brother.viraLider()
+      for person in brothersInGame:
+        if person.id == gameOrder[0].id:
+            person.viraLider()
+            bot.edit_message_text("Acertou! Acabou a prova! O líder é: 🏆🏆🏆 " + person.name + " 🏆🏆🏆", query.message.chat.id, query.message.message_id, reply_markup=types.InlineKeyboardMarkup())
             break
       gameOrder.pop(0)
       isProva = False
@@ -224,13 +214,13 @@ def process_callback_win(query):
 def process_callback_lose(query):
     global gameOrder
     if(query.message.chat.id == gameOrder[0].id):
-      bot.send_message(query.message.chat.id, "Errou!")
       gameOrder.pop(0)
+      menukeyboard = retiraItem(query.message.chat.id, query.message.message_id, query.data)
       if(len(gameOrder) == 0):
           gameOrder = gameOrderFixed.copy()
-          bot.send_message(query.message.chat.id, "E volta para o primeiro: " + gameOrder[0].name)
+          bot.edit_message_text("Errou! E volta para o primeiro: " + gameOrder[0].name, query.message.chat.id, query.message.message_id, reply_markup=menukeyboard)
       else:
-          bot.send_message(query.message.chat.id, "Sua vez " + gameOrder[0].name)
+          bot.edit_message_text("Errou! Agora é a vez de " + gameOrder[0].name, query.message.chat.id, query.message.message_id, reply_markup=menukeyboard)
     else:
       bot.send_message(query.message.chat.id, "Não é tua vez! Menos 500 estalecas!")
 
@@ -248,16 +238,17 @@ def callAd():
             adOnAir = False
 
 def list_brothers(message):
-    for person in BrothersInGame:
+    for person in brothersInGame:
         bot.send_message(message.chat.id, person.name + ", " + person.nickname)
 
 def sorteioOrdem(message):
-    allPeople = BrothersInGame
+    allPeople = brothersInGame.copy()
     global gameOrder
     global gameOrderFixed
-    for x in range(len(BrothersInGame)):
-        randomPlayer = random.choice(BrothersInGame)
-        gameOrder.append(randomPlayer)
+    for x in range(len(brothersInGame)):
+        randomPlayer = random.choice(allPeople)
+        if randomPlayer.isMonstro == False:
+            gameOrder.append(randomPlayer)
         allPeople.remove(randomPlayer)
     gameOrderFixed = gameOrder.copy()
     bot.send_message(message.chat.id, "Ordem de jogo: ")
@@ -265,19 +256,37 @@ def sorteioOrdem(message):
         bot.send_message(message.chat.id, gameOrder[x].name)
 
 
-def provaStart(message, provaDe, numero, emoji):
+def provaStart(message):
+    global emoji
+    global winner
+    global numeroItensProva
     menuKeyboard = types.InlineKeyboardMarkup()
-    winner = random.randrange(numero)
-    for x in range(numero):
+    winner = random.randrange(numeroItensProva)
+    for x in range(numeroItensProva):
         if x == winner:
             menuKeyboard.add(types.InlineKeyboardButton(emoji, callback_data='winner'+str(x)))
         else:
             menuKeyboard.add(types.InlineKeyboardButton(emoji, callback_data='loser'+str(x)))
 
 
-    escolhas = bot.send_message(message.chat.id, "Escolha um: ", reply_markup=menuKeyboard)
+    bot.send_message(message.chat.id, "Escolha um: ", reply_markup=menuKeyboard)
 
+def retiraItem(cid, mid, item):
+    global itensRetirados
+    itensRetirados.append(item)
+    aux = item.replace('loser','')
+    menuKeyboard = types.InlineKeyboardMarkup()
+    for x in range(numeroItensProva):
+        if x == winner:
+            menuKeyboard.add(types.InlineKeyboardButton(emoji, callback_data='winner'+str(x)))
+        else:
+            if x == int(aux) or ('loser'+str(x) in itensRetirados):
+                menuKeyboard.add(types.InlineKeyboardButton('❌', callback_data='chosen'+str(x)))
+            else:
+                menuKeyboard.add(types.InlineKeyboardButton(emoji, callback_data='loser'+str(x)))
 
+    return menuKeyboard
+    # bot.edit_message_text("Escolha um: ", cid, mid, reply_markup=menuKeyboard)
 
 
 
