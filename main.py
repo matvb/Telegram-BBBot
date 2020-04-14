@@ -13,37 +13,28 @@ from telebot import types
 bot = telebot.TeleBot("1260151892:AAG8if7VcDgpm63FaaJSFlVku-grhabeo-o")
 
 #global variables
-global prodaDe
 global adTime
 adTime = 2
 global adOnAir
 adOnAir = False
 global adTimeLeft
-global questioning
-questioning = False
-global voting
-voting = False
-global currentQuestion
-currentQuestion = " "
-global justVoted
-justVoted = False
 global gameOn
 gameOn = False
 global gameStarted
 gameStarted = False
-sizeOfHand = 5 #quantidade de cartas que se pode ter na mão
-global markup
+global isProva
+isProva = False
+
+
 #lists
-global choosenPhrase
 global palavroes
 palavroes = ['caralho','puta', 'pqp', 'cu', 'buceta', 'pau']
+global gameOrder
+global gameOrderFixed
 
-# Answers given to a question
-givenAnswers = list()
-myAnswers = list()
-gameQuestions = list()
-joinedPeople = list()
+BrothersInGame = list()
 gameOrder = list()
+gameOrderFixed = list()
 
 THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
 
@@ -60,11 +51,39 @@ with open(os.path.join(THIS_FOLDER, 'prova-sorte.txt'), encoding="utf8") as myfi
 myfile.close()
 
 
-class joinedPerson():
+class brother():
     def __init__(self, name, id):
         self.name = name
         self.id = id
         self.nickname = random.choice(allNicknames)
+        self.isLider = False
+        self.isAnjo = False
+        self.isSalvo = False
+        self.isEmparedado = False
+
+    def viraLider(self):
+        self.isLider = True
+
+    def acabaLider(self):
+        self.isLider = False
+
+    def viraAnjo(self):
+        self.isAnjo = True
+
+    def acabaAnjo(self):
+        self.isAnjo = False
+
+    def viraSalvo(self):
+        self.isSalvo = True
+
+    def acabaSalvo(self):
+        self.isSalvo = False
+
+    def viraEmparedado(self):
+        self.isEmparedado = True
+
+    def acabaEmparedado(self):
+        self.isEmparedado = False
 
 
 #Handlers
@@ -72,9 +91,8 @@ class joinedPerson():
 @bot.message_handler(commands=['join'])
 def send_join(message):
     if adOnAir:
-
-        if not any(x.id == message.chat.id for x in joinedPeople):   #erro
-            joinedPeople.append(joinedPerson(message.chat.first_name, message.chat.id))
+        if not any(x.id == message.chat.id for x in BrothersInGame):   #erro
+            BrothersInGame.append(brother(message.chat.first_name, message.chat.id))
             bot.send_message(message.chat.id, message.chat.first_name + " entrou na brincadeira!")
         else:
             bot.send_message(message.chat.id, "Tu já tá, fera!")
@@ -82,11 +100,11 @@ def send_join(message):
         bot.send_message(message.chat.id, "Quem sabe ano que vem...")
 
 
-@bot.message_handler(commands=['showJoined'])
+@bot.message_handler(commands=['showBrothers'])
 def send_show_joined(message):
     bot.send_message(message.chat.id, "Brothers na casa:")
     list_brothers(message)
-    # for person in joinedPeople:
+    # for person in BrothersInGame:
     #     bot.send_message(message.chat.id, "Nome: " + person.name + " ID: " + str(person.id))
 
 
@@ -102,13 +120,14 @@ def send_about(message):
     bot.send_message(message.chat.id, """Bot para jogar "Cards Against Humanity" mas com um nome menos agressivo.""")
     bot.send_message(message.chat.id, "by: Mateus Villas Boas")
 
-@bot.message_handler(commands=['provaLider'])
+@bot.message_handler(commands=['prova_lider'])
 def send_about(message):
-    global provaDe
+    global isProva
     if gameOn:
+        isProva = True
         provaDe = "líder"
         bot.send_message(message.chat.id, "Vamos começar a prova de liderança de hoje!")
-        numero = random.randrange(10, 20)
+        numero = random.randrange(1, 5)
         provaTexto = random.choice(allProvaSorte).replace("GANHADOR", provaDe).replace("NUMERO",str(numero))
         emoji = provaTexto[-1]
         bot.send_message(message.chat.id, provaTexto)
@@ -184,32 +203,38 @@ def palavrao_handler(message):
         bot.reply_to(message, "Estamos ao vivo, não fale palavrão! Menos 300 estalecas!")
 
 
-@bot.callback_query_handler(lambda query: query.data == "y")
-def process_callback_1(query):
-  print('acertei')
+# escolheu o botão certo
+@bot.callback_query_handler(lambda query: ('winner' in query.data) and isProva)
+def process_callback_win(query):
+    global gameOrder
+    global isProva
+    if(query.message.chat.id == gameOrder[0].id):
+      bot.send_message(query.message.chat.id, "Acertou!")
+      for brother in BrothersInGame:
+        if brother.id == gameOrder[0].id:
+            brother.viraLider()
+            break
+      gameOrder.pop(0)
+      isProva = False
+    else:
+      bot.send_message(query.message.chat.id, "Não é tua vez! Menos 500 estalecas!")
 
-@bot.callback_query_handler(lambda query: query.data == "n")
-def process_callback_1(query):
-  print('errei')
+# escolhei o botão errado
+@bot.callback_query_handler(lambda query: ('loser' in query.data) and isProva)
+def process_callback_lose(query):
+    global gameOrder
+    if(query.message.chat.id == gameOrder[0].id):
+      bot.send_message(query.message.chat.id, "Errou!")
+      gameOrder.pop(0)
+      if(len(gameOrder) == 0):
+          gameOrder = gameOrderFixed.copy()
+          bot.send_message(query.message.chat.id, "E volta para o primeiro: " + gameOrder[0].name)
+      else:
+          bot.send_message(query.message.chat.id, "Sua vez " + gameOrder[0].name)
+    else:
+      bot.send_message(query.message.chat.id, "Não é tua vez! Menos 500 estalecas!")
 
 
-def update_keyboard():
-    for answer in myAnswers:
-        markup.add(types.KeyboardButton(answer))
-
-#inicializa e enche a lista de perguntas
-def inicialize_gameQuestions():
-    for question in allQuestions:
-        if question not in gameQuestions:
-            gameQuestions.append(question)
-
-def inicialize_my_answers():
-    for i in range(0, sizeOfHand):
-        add_one_answer()
-
-def add_one_answer():
-    answer = allAnswers[random.randint(0, len(allAnswers)-1)]
-    myAnswers.append(answer)
 
 def callAd():
     global adOnAir
@@ -223,18 +248,21 @@ def callAd():
             adOnAir = False
 
 def list_brothers(message):
-    for person in joinedPeople:
+    for person in BrothersInGame:
         bot.send_message(message.chat.id, person.name + ", " + person.nickname)
 
 def sorteioOrdem(message):
-    allPeople = joinedPeople
-    for x in range(len(joinedPeople)):
-        randomPlayer = random.choice(joinedPeople)
+    allPeople = BrothersInGame
+    global gameOrder
+    global gameOrderFixed
+    for x in range(len(BrothersInGame)):
+        randomPlayer = random.choice(BrothersInGame)
         gameOrder.append(randomPlayer)
         allPeople.remove(randomPlayer)
-    print("ordem: \n")
+    gameOrderFixed = gameOrder.copy()
+    bot.send_message(message.chat.id, "Ordem de jogo: ")
     for x in range(len(gameOrder)):
-        print (gameOrder[x].name),
+        bot.send_message(message.chat.id, gameOrder[x].name)
 
 
 def provaStart(message, provaDe, numero, emoji):
@@ -242,13 +270,12 @@ def provaStart(message, provaDe, numero, emoji):
     winner = random.randrange(numero)
     for x in range(numero):
         if x == winner:
-            menuKeyboard.add(types.InlineKeyboardButton(emoji, callback_data='y'))
+            menuKeyboard.add(types.InlineKeyboardButton(emoji, callback_data='winner'+str(x)))
         else:
-            menuKeyboard.add(types.InlineKeyboardButton(emoji, callback_data='n'))
+            menuKeyboard.add(types.InlineKeyboardButton(emoji, callback_data='loser'+str(x)))
 
 
-
-    bot.send_message(message.chat.id, "Escolha um: ", reply_markup=menuKeyboard)
+    escolhas = bot.send_message(message.chat.id, "Escolha um: ", reply_markup=menuKeyboard)
 
 
 
