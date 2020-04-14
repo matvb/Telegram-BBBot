@@ -30,6 +30,8 @@ global emoji
 global winner
 global menuItensProva
 global itensRetirados
+global isEvento
+isEvento = False
 
 
 #lists
@@ -43,6 +45,8 @@ brothersInGame = list()
 gameOrder = list()
 gameOrderFixed = list()
 itensRetirados = list()
+
+fluxo = ['resumo','prova_lider','prova_anjo','salva','monstro','indicacao_lider','votacao_casa', 'paredao','eliminação']
 
 THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
 
@@ -175,6 +179,7 @@ def send_start(message):
         gameOn = True
         bot.send_message(message.chat.id, "Estamos de volta e o jogo começou!")
         list_brothers(message)
+        entra_fluxo(message)
     else:
         if not gameOn:
             bot.send_message(message.chat.id, "O jogo já vai começar, espere o comercial!")
@@ -207,6 +212,7 @@ def palavrao_handler(message):
 def process_callback_win(query):
     global gameOrder
     global isProva
+    global isEvento
     if(query.message.chat.id == gameOrder[0].id):
       for person in brothersInGame:
         if person.id == gameOrder[0].id:
@@ -215,6 +221,7 @@ def process_callback_win(query):
             break
       gameOrder.pop(0)
       isProva = False
+      isEvento = False
     else:
       bot.send_message(query.message.chat.id, "Não é tua vez! Menos 500 estalecas!")
 
@@ -296,6 +303,86 @@ def retiraItem(cid, mid, item):
 
     return menuKeyboard
     # bot.edit_message_text("Escolha um: ", cid, mid, reply_markup=menuKeyboard)
+
+def entra_fluxo(message):
+    global isEvento
+    isEvento = False
+    while len(brothersInGame) != 0:
+        for evento in fluxo:
+            time.sleep(1)
+            while isEvento:
+                pass
+            # FALTA implementar switch-case da maneira certa
+            if evento == 'resumo':
+                resumo_semana(message)
+            elif evento == 'prova_lider':
+                isEvento = True
+                prova_lider(message)
+            elif  evento == 'prova_anjo':
+                prova_anjo(message)
+            elif evento == 'salva':
+                anjo_salva(message)
+            elif evento == 'monstro':
+                anjo_monstro(message)
+            elif evento == 'indicacao_lider':
+                indicacao_lider(message)
+            elif evento == 'votacao_casa':
+                votacao_casa(message)
+            elif evento == 'paredao':
+                paredao(message)
+            elif evento == 'eliminação':
+                eliminacao(message)
+            else:
+                bot.send_message(message.chat.id, "Erro! Fluxo inexistente!")
+
+#fluxo
+
+def resumo_semana(message):
+    bot.send_message(message.chat.id, "Resumo da semana: ")
+
+
+def prova_lider(message):
+    bot.send_message(message.chat.id, "Prova do Lider: ")
+    global isProva
+    global provaDe
+    global numeroItensProva
+    global emoji
+    if gameOn:
+        isProva = True
+        provaDe = "líder"
+        bot.send_message(message.chat.id, "Vamos começar a prova de liderança de hoje!")
+        numeroItensProva = random.randrange(5, 10)
+        provaTexto = random.choice(allProvaSorte).replace("GANHADOR", provaDe).replace("NUMERO",str(numeroItensProva))
+        emoji = provaTexto[-1]
+        bot.send_message(message.chat.id, provaTexto)
+        sorteioOrdem(message)
+        provaStart(message)
+    else:
+        bot.send_message(message.chat.id, "Ainda ta na novela...")
+
+
+
+def prova_anjo(message):
+    bot.send_message(message.chat.id, "Prova do anjo não foi implementada: ")
+
+def anjo_salva(message):
+    bot.send_message(message.chat.id, "Salvamento do anjo não foi implementado: ")
+
+def anjo_monstro(message):
+    bot.send_message(message.chat.id, "Montro não foi implementado: ")
+
+def indicacao_lider(message):
+    bot.send_message(message.chat.id, "Indicação do lider não foi implementada: ")
+
+def votacao_casa(message):
+    bot.send_message(message.chat.id, "Votação da casa não foi implementada: ")
+
+def paredao(message):
+    bot.send_message(message.chat.id, "Paredão não foi implementado: ")
+
+def eliminacao(message):
+    bot.send_message(message.chat.id, "Eliminação não foi implementada: ")
+
 
 
 
