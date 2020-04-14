@@ -155,6 +155,13 @@ def send_about(message):
     else:
         bot.send_message(message.chat.id, "Ainda ta na novela...")
 
+
+@bot.message_handler(commands=['force_start'])
+def send_start(message):
+    global adOnAir
+    adOnAir = False
+
+
 @bot.message_handler(commands=['start'])
 def send_start(message):
     global gameOn
@@ -163,14 +170,16 @@ def send_start(message):
         gameStarted = True
         bot.send_message(message.chat.id, "Vai entrar no ar a casa mais vigiada do Brasil! \nLogo após os comerciais de " + str(adTime) + " segundos!\nApertem /join para entrar!")
         callAd()
+        while adOnAir:
+            pass
+        gameOn = True
+        bot.send_message(message.chat.id, "Estamos de volta e o jogo começou!")
+        list_brothers(message)
     else:
-        if adOnAir:
-            bot.send_message(message.chat.id, "Espere o comercial acabar. Ainda pode ter gente entrando da casa de vidro.")
+        if not gameOn:
+            bot.send_message(message.chat.id, "O jogo já vai começar, espere o comercial!")
         else:
-            gameOn = True
-            bot.send_message(message.chat.id, "Estamos de volta e o jogo começou!")
-            list_brothers(message)
-
+            bot.send_message(message.chat.id, "Já estamos no ar!")
 
 @bot.message_handler(commands=['stop'])
 def send_stop(message):
