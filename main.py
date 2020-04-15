@@ -47,6 +47,8 @@ gameOrderFixed = list()
 itensRetirados = list()
 
 fluxo = ['resumo','prova_lider','prova_anjo','salva','monstro','indicacao_lider','votacao_casa', 'paredao','eliminação']
+# tiposProvas = ['sorte','conhecimento']
+tiposProvas = ['sorte']
 
 THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
 
@@ -60,6 +62,12 @@ allProvaSorte = list()
 with open(os.path.join(THIS_FOLDER, 'prova-sorte.txt'), encoding="utf8") as myfile:
     for line in myfile:
         allProvaSorte.append(line.replace("\n",""))
+myfile.close()
+
+allResumo = list()
+with open(os.path.join(THIS_FOLDER, 'resumo.txt'), encoding="utf8") as myfile:
+    for line in myfile:
+        allResumo.append(line.replace("\n",""))
 myfile.close()
 
 
@@ -314,6 +322,7 @@ def entra_fluxo(message):
                 pass
             # FALTA implementar switch-case da maneira certa
             if evento == 'resumo':
+                isEvento = True
                 resumo_semana(message)
             elif evento == 'prova_lider':
                 isEvento = True
@@ -338,7 +347,25 @@ def entra_fluxo(message):
 #fluxo
 
 def resumo_semana(message):
+    global isEvento
     bot.send_message(message.chat.id, "Resumo da semana: ")
+    resumo = ""
+    for brother in brothersInGame:
+        for x in range(20):
+            brother2 = random.choice(brothersInGame)
+            if len(brothersInGame) > 1:
+                while (brother.id == brother2.id):
+                    brother2 = random.choice(brothersInGame)
+            frase = random.choice(allResumo)
+            frase = frase.replace('JOGADOR1',brother.name).replace('JOGADOR2',brother2.name)
+            frase = frase.replace('JOG1',brother.name[:3]).replace('JOG2',brother2.name[-3:])
+            bot.send_message(message.chat.id, frase)
+            time.sleep(1)
+    time.sleep(3)
+    isEvento = False
+
+
+
 
 
 def prova_lider(message):
