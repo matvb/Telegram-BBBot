@@ -7,8 +7,6 @@ import config
 import random
 import datetime
 import os
-from PIL import Image
-# import Image
 import glob
 from telebot import types
 
@@ -37,6 +35,7 @@ global isEvento
 isEvento = False
 global quantEmparedados
 quantEmparedados = 0
+global host
 
 #lists
 global palavroes
@@ -44,6 +43,8 @@ palavroes = ['caralho','puta', 'pqp', 'cu', 'buceta', 'pau']
 global gameOrder
 global gameOrderFixed
 global brothersInGame
+global allHosts
+allHosts = ['bial','thiago','boninho']
 
 brothersInGame = list()
 gameOrder = list()
@@ -77,17 +78,22 @@ myfile.close()
 
 thiagofotos = list()
 for foto in glob.glob('./img/thiago*.jpg'):
-    im=Image.open(foto)
+    im = open(foto, 'rb')
     thiagofotos.append(im)
 
 bialfotos = list()
 for foto in glob.glob('./img/bial*.jpg'): #
-    im=Image.open(foto)
+    im = open(foto, 'rb')
     bialfotos.append(im)
+
+boninhofotos = list()
+for foto in glob.glob('./img/boninho*.jpg'): #
+    im = open(foto, 'rb')
+    boninhofotos.append(im)
 
 premioFotos = list()
 for foto in glob.glob('./img/premio*.jpg'): #
-    im=Image.open(foto)
+    im = open(foto, 'rb')
     premioFotos.append(im)
 
 class brother():
@@ -240,6 +246,7 @@ def send_start(message):
 def send_start(message):
     global gameOn
     global gameStarted
+    global host
     if not gameStarted:
         gameStarted = True
         bot.send_message(message.chat.id, "Vai entrar no ar a casa mais vigiada do Brasil! \nLogo após os comerciais de " + str(adTime) + " segundos!\nApertem /join para entrar!")
@@ -247,7 +254,8 @@ def send_start(message):
         while adOnAir:
             pass
         gameOn = True
-        bot.send_message(message.chat.id, "Estamos de volta e o jogo começou!")
+        host = random.choice(allHosts)
+        bot.send_message(message.chat.id, "Começando mais uma temporada de Big Brother Telegram, o chat mais vigiado do Brasil!\nSou " + host.title() + ", o seu apresentador essa noite!")
         list_brothers(message)
         entra_fluxo(message)
     else:
@@ -496,7 +504,12 @@ def entra_fluxo(message):
 
 def resumo_semana(message):
     global isEvento
-    bot.send_photo(message.chat.id, random.choice(thiagofotos))
+    if host == 'thiago':
+        bot.send_photo(message.chat.id, random.choice(thiagofotos))
+    elif host == 'boninho':
+        bot.send_photo(message.chat.id, random.choice(boninhofotos))
+    elif host == 'bial':
+        bot.send_photo(message.chat.id, random.choice(bialfotos))
     bot.send_message(message.chat.id, "Resumo da semana: ")
     resumo = ""
     for brother in brothersInGame:
