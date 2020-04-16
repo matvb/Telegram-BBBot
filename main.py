@@ -7,6 +7,9 @@ import config
 import random
 import datetime
 import os
+from PIL import Image
+# import Image
+import glob
 from telebot import types
 
 
@@ -32,7 +35,8 @@ global menuItensProva
 global itensRetirados
 global isEvento
 isEvento = False
-
+global quantEmparedados
+quantEmparedados = 0
 
 #lists
 global palavroes
@@ -45,6 +49,7 @@ brothersInGame = list()
 gameOrder = list()
 gameOrderFixed = list()
 itensRetirados = list()
+
 
 fluxo = ['resumo','prova_lider','prova_anjo','salva','monstro','indicacao_lider','votacao_casa', 'paredao','eliminação']
 # tiposProvas = ['sorte','conhecimento']
@@ -70,6 +75,20 @@ with open(os.path.join(THIS_FOLDER, 'resumo.txt'), encoding="utf8") as myfile:
         allResumo.append(line.replace("\n",""))
 myfile.close()
 
+thiagofotos = list()
+for foto in glob.glob('./img/thiago*.jpg'):
+    im=Image.open(foto)
+    thiagofotos.append(im)
+
+bialfotos = list()
+for foto in glob.glob('./img/bial*.jpg'): #
+    im=Image.open(foto)
+    bialfotos.append(im)
+
+premioFotos = list()
+for foto in glob.glob('./img/premio*.jpg'): #
+    im=Image.open(foto)
+    premioFotos.append(im)
 
 class brother():
     def __init__(self, name, id):
@@ -83,6 +102,10 @@ class brother():
         self.isMonstro = False
         self.votos = 0
         self.votou = False
+        self.salvou = False
+        self.monstrou = False
+        self.desempatou = False
+        self.indicou = False
 
     def viraLider(self):
         self.isLider = True
@@ -123,8 +146,33 @@ class brother():
     def jaVotou(self):
         self.votou = True
 
-    def acabaVotou(self):
+    def zeraVotou(self):
         self.votou = False
+
+    def jaSalvou(self):
+        self.salvou = True
+
+    def zeraSalvou(self):
+        self.salvou = False
+
+    def jaMonstrou(self):
+        self.monstrou = True
+
+    def zeraMonstrou(self):
+        self.monstrou = False
+
+    def jaDesempatou(self):
+        self.desempatou = True
+
+    def zeraDesempatou(self):
+        self.desempatou = False
+
+    def jaIndicou(self):
+        self.indicou = True
+
+    def zeraIndicou(self):
+        self.indicou = False
+
 
 
 #Handlers
@@ -274,9 +322,10 @@ def process_callback_lose(query):
     global isEvento
 
     brotherAnjo = next(brother for brother in brothersInGame if brother.isAnjo == True)
-    if(query.message.chat.id == brotherAnjo.id):
+    if(query.message.chat.id == brotherAnjo.id) and (not brotherAnjo.salvou):
         brotherSalvo = next(brother for brother in brothersInGame if brother.id == query.data.replace('salva',''))
-        brother.viraSalvo()
+        brotherSalvo.viraSalvo()
+        brotherAnjo.jaSalvou()
         bot.edit_message_text( brotherAnjo.nome + "salvou " + brotherSalvo.nome, query.message.chat.id + "!", query.message.message_id, reply_markup=types.InlineKeyboardMarkup())
         isEvento = False
     else:
@@ -287,11 +336,12 @@ def process_callback_lose(query):
     global isEvento
 
     brotherAnjo = next(brother for brother in brothersInGame if brother.isAnjo == True)
-    if(query.message.chat.id == brotherAnjo.id):
-        brotherSalvo = next(brother for brother in brothersInGame if brother.id == query.data.replace('montro',''))
-        brother.viraMonstro()
-        brother.jaVotou()
-        bot.edit_message_text( brotherAnjo.nome + " deu o montro para " + brotherSalvo.nome, query.message.chat.id + "!", query.message.message_id, reply_markup=types.InlineKeyboardMarkup())
+    if(query.message.chat.id == brotherAnjo.id) and (not brotherAnjo.monstrou):
+        brotherMontro = next(brother for brother in brothersInGame if brother.id == query.data.replace('montro',''))
+        brotherMontro.viraMonstro()
+        brotherMontro.jaVotou()
+        brotherAnjo.jaMonstrou()
+        bot.edit_message_text( brotherAnjo.nome + " deu o montro para " + brotherMontro.nome, query.message.chat.id + "!", query.message.message_id, reply_markup=types.InlineKeyboardMarkup())
         isEvento = False
     else:
       bot.send_message(query.message.chat.id, "Não é tua vez! Menos 500 estalecas!")
@@ -299,12 +349,15 @@ def process_callback_lose(query):
 @bot.callback_query_handler(lambda query: ('indicado' in query.data) and isEvento)
 def process_callback_lose(query):
     global isEvento
+    global quantEmparedados
 
-    brotherAnjo = next(brother for brother in brothersInGame if brother.isAnjo == True)
-    if(query.message.chat.id == brotherAnjo.id):
-        brotherSalvo = next(brother for brother in brothersInGame if brother.id == query.data.replace('indicado',''))
-        brother.viraEmparedado()
-        bot.edit_message_text( brotherAnjo.nome + " fez sua escolha. " + brotherSalvo.nome, query.message.chat.id + ", você está no paredão!", query.message.message_id, reply_markup=types.InlineKeyboardMarkup())
+    brotherLider = next(brother for brother in brothersInGame if brother.isLider == True)
+    if(query.message.chat.id == brotherLider.id) and (not brotherLider.indicou):
+        brotherIndicado = next(brother for brother in brothersInGame if brother.id == query.data.replace('indicado',''))
+        brotherIndicado.viraEmparedado()
+        quantEmparedados += 1
+        brotherLider.jaIndicou()
+        bot.edit_message_text( brotherLider.nome + " fez sua escolha. " + brotherIndicado.nome, query.message.chat.id + ", você está no paredão!", query.message.message_id, reply_markup=types.InlineKeyboardMarkup())
         isEvento = False
     else:
       bot.send_message(query.message.chat.id, "Não é tua vez! Menos 500 estalecas!")
@@ -316,8 +369,23 @@ def process_callback_lose(query):
         brotherVotou = next(brother for brother in brothersInGame if brother.id == query.message.chat.id)
         if (not brotherVotou.votou) and (not brotherVotou.isMonstro):
             brotherVotou.jaVotou()
-            brotherVotado = next(brother for brother in brothersInGame if brother.id == query.data.replace('votou',''))
+            brotherVotado = next(brother for brother in brothersInGame if brother.id == query.data.replace('voto',''))
             brotherVotado.recebeVoto()
+
+@bot.callback_query_handler(lambda query: ('desempate' in query.data) and isEvento)
+def process_callback_lose(query):
+    global isEvento
+    global quantEmparedados
+
+    brotherLider = next(brother for brother in brothersInGame if brother.isLider == True)
+    if(query.message.chat.id == brotherLider.id) and quantEmparedados < 3:
+        brotherIndicado = next(brother for brother in brothersInGame if brother.id == query.data.replace('desempate',''))
+        brotherIndicado.viraEmparedado()
+        quantEmparedados += 1
+        bot.edit_message_text( brotherLider.nome + " fez sua escolha. " + brotherIndicado.nome, query.message.chat.id + ", você está no paredão!", query.message.message_id, reply_markup=types.InlineKeyboardMarkup())
+        isEvento = False
+    else:
+      bot.send_message(query.message.chat.id, "Não é tua vez! Menos 500 estalecas!")
 
 
 def call_ad():
@@ -428,6 +496,7 @@ def entra_fluxo(message):
 
 def resumo_semana(message):
     global isEvento
+    bot.send_photo(message.chat.id, random.choice(thiagofotos))
     bot.send_message(message.chat.id, "Resumo da semana: ")
     resumo = ""
     for brother in brothersInGame:
@@ -470,9 +539,9 @@ def anjo_salva(message):
     bot.send_message(message.chat.id, "Anjo, quem você deseja imunizar nessa rodada? ")
 
     menuKeyboard = types.InlineKeyboardMarkup()
-    for bother in brothersInGame:
+    for brother in brothersInGame:
         if not brother.isAnjo:
-            menuKeyboard.add(types.InlineKeyboardButton(bother.name, callback_data= 'salva' + bother.id))
+            menuKeyboard.add(types.InlineKeyboardButton(brother.name, callback_data= 'salva' + brother.id))
     bot.send_message(message.chat.id, "Escolha um: ", reply_markup=menuKeyboard)
 
 
@@ -480,29 +549,78 @@ def anjo_monstro(message):
     bot.send_message(message.chat.id, "Anjo, quem você bota de monstro essa rodada?\nLembrando que o montro não participa da votação da casa!")
 
     menuKeyboard = types.InlineKeyboardMarkup()
-    for bother in brothersInGame:
+    for brother in brothersInGame:
         if not brother.isAnjo:
-            menuKeyboard.add(types.InlineKeyboardButton(bother.name, callback_data= 'monstro' + bother.id))
+            menuKeyboard.add(types.InlineKeyboardButton(brother.name, callback_data= 'monstro' + brother.id))
     bot.send_message(message.chat.id, "Escolha um: ", reply_markup=menuKeyboard)
 
 def indicacao_lider(message):
     bot.send_message(message.chat.id, "Líder, está na sua vez. Quem você coloca no paredão?")
     menuKeyboard = types.InlineKeyboardMarkup()
-    for bother in brothersInGame:
+    for brother in brothersInGame:
         if (not brother.isAnjo) and (not brother.isLider):
-            menuKeyboard.add(types.InlineKeyboardButton(bother.name, callback_data= 'indicado' + bother.id))
+            menuKeyboard.add(types.InlineKeyboardButton(brother.name, callback_data= 'indicado' + brother.id))
     bot.send_message(message.chat.id, "Escolha um: ", reply_markup=menuKeyboard)
 
 def votacao_casa(message):
+    global brothersInGame
+    global quantEmparedados
+
     bot.send_message(message.chat.id, "Agora é com vocês casa, está na hora de votar. Quem vocês querem que vá para o paredão?")
     menuKeyboard = types.InlineKeyboardMarkup()
-    for bother in brothersInGame:
+    for brother in brothersInGame:
         if (not brother.isAnjo) and (not brother.isLider):
-            menuKeyboard.add(types.InlineKeyboardButton(bother.name, callback_data= 'voto' + bother.id))
+            menuKeyboard.add(types.InlineKeyboardButton(brother.name, callback_data= 'voto' + brother.id))
     bot.send_message(message.chat.id, "Escolha um: ", reply_markup=menuKeyboard)
 
     while any(x.votou == False.message.chat.id for x in brothersInGame):
         pass
+
+    brothersInGame.sort(key=lambda x: x.votos, reverse=True)
+    desempate1 = list()
+    desempate2 = list()
+    aux = 0
+    bot.send_message(message.chat.id, "Votos: ")
+    for brother in brothersInGame:
+        if (not brother.isAnjo) and (not brother.isLider):
+            if aux == 0:
+                desempate1.append(brother.id)
+            else:
+                if brother.votos == desempate1[0].votos:
+                    desempate1.append(brother.id)
+                else:
+                    if aux == 1:
+                        desempate2.append(brother.id)
+                    else:
+                        if brother.votos == desempate2[0].votos:
+                            desempate2.append(brother.id)
+
+            aux += 1
+            bot.send_message(message.chat.id, brother.name + ": " + brother.votos)
+
+    if (len(desempate1) == 1 and len(desempate2) == 1) or len(desempate1) == 2:
+        brothersInGame[0].viraEmparedado()
+        brothersInGame[1].viraEmparedado()
+        quantEmparedados += 2
+
+    elif len(desempate1) > 2:
+        lider_desempata(message, desempate1)
+    else:
+        brothersInGame[0].viraEmparedado()
+        quantEmparedados += 1
+        lider_desempata(message, desempate2)
+
+def lider_desempata(message, listaDesempate):
+
+    bot.send_message(message.chat.id, "Temos um empates de " + len(listaDesempate) + '. O líder irá decidir quem vai para o paredão.')
+
+    menuKeyboard = types.InlineKeyboardMarkup()
+    for id in listaDesempate:
+        for brother in brothersInGame:
+            if brother.id == id:
+                menuKeyboard.add(types.InlineKeyboardButton(brother.name, callback_data= 'desempate' + brother.id))
+
+    bot.send_message(message.chat.id, "Líder,Escolha um: ", reply_markup=menuKeyboard)
 
 def paredao(message):
     bot.send_message(message.chat.id, "Paredão não foi implementado: ")
