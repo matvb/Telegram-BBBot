@@ -224,7 +224,7 @@ def send_about(message):
 
 
 @bot.message_handler(commands=['force_start'])
-def send_start(message):
+def send_force_start(message):
     global adOnAir
     adOnAir = False
 
