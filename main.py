@@ -488,14 +488,19 @@ def entra_fluxo(message):
                 isEvento = True
                 anjo_salva(message)
             elif evento == 'monstro':
+                isEvento = True
                 anjo_monstro(message)
             elif evento == 'indicacao_lider':
+                isEvento = True
                 indicacao_lider(message)
             elif evento == 'votacao_casa':
+                isEvento = True
                 votacao_casa(message)
             elif evento == 'paredao':
+                isEvento = True
                 paredao(message)
             elif evento == 'eliminação':
+                isEvento = True
                 eliminacao(message)
             else:
                 bot.send_message(message.chat.id, "Erro! Fluxo inexistente!")
@@ -636,10 +641,27 @@ def lider_desempata(message, listaDesempate):
     bot.send_message(message.chat.id, "Líder,Escolha um: ", reply_markup=menuKeyboard)
 
 def paredao(message):
-    bot.send_message(message.chat.id, "Paredão não foi implementado: ")
+    global isEvento
+    bot.send_message(message.chat.id, "Os emparedados da semana são: ")
+    for brother in brothersInGame:
+        if brother.isEmparedado:
+            bot.send_message(message.chat.id, brother.name + ', ' brother.nickname)
+
+    bot.send_message(message.chat.id, "Está aberta a votação do público!")
+
+    time.sleep(3)
+    isEvento = False
+
 
 def eliminacao(message):
     bot.send_message(message.chat.id, "Eliminação não foi implementada: ")
+    eliminado = ramdom.choice(brothersInGame)
+    while not eliminado.isEmparedado:
+        eliminado = ramdom.choice(brothersInGame)
+
+    round(random.uniform(2.5,22.5), 2))
+    bot.send_message(message.chat.id, "Eliminação não foi implementada: ")
+
 
 
 
