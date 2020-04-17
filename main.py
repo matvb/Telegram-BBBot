@@ -195,7 +195,7 @@ def send_join(message):
     if adOnAir:
         if not any(x.id == message.chat.id for x in brothersInGame):   #erro
             brothersInGame.append(brother(message.chat.first_name, message.chat.id))
-            bot.send_message(message.chat.id, message.chat.first_name + " entrou na brincadeira!")
+            bot.send_message(message.chat.id, message.chat.first_name + ", seja bem-vindo ao BBT!")
         else:
             bot.send_message(message.chat.id, "Tu já tá, fera!")
     else:
@@ -210,7 +210,7 @@ def send_show_joined(message):
     #     bot.send_message(message.chat.id, "Nome: " + person.name + " ID: " + str(person.id))
 
 
-@bot.message_handler(commands=['showAdTime'])
+@bot.message_handler(commands=['show_ad_time'])
 def send_show_ad_time(message):
     if adOnAir:
         bot.send_message(message.chat.id, "Faltam " + str(adTimeLeft) + " segundos. Da pra entrar ainda!")
@@ -222,31 +222,11 @@ def send_about(message):
     bot.send_message(message.chat.id, """Bot para se sentir na casa mais vigiada do Brasil.""")
     bot.send_message(message.chat.id, "by: Mateus Villas Boas")
 
-@bot.message_handler(commands=['prova_lider'])
-def send_about(message):
-    global isProva
-    global provaDe
-    global numeroItensProva
-    global emoji
-    if gameOn:
-        isProva = True
-        provaDe = "líder"
-        bot.send_message(message.chat.id, "Vamos começar a prova de liderança de hoje!")
-        numeroItensProva = random.randrange(5, 10)
-        provaTexto = random.choice(allProvaSorte).replace("GANHADOR", provaDe).replace("NUMERO",str(numeroItensProva))
-        emoji = provaTexto[-1]
-        bot.send_message(message.chat.id, provaTexto)
-        sorteio_ordem(message)
-        provaStart(message)
-    else:
-        bot.send_message(message.chat.id, "Ainda ta na novela...")
-
 
 @bot.message_handler(commands=['force_start'])
 def send_start(message):
     global adOnAir
     adOnAir = False
-
 
 @bot.message_handler(commands=['start'])
 def send_start(message):
@@ -255,7 +235,7 @@ def send_start(message):
     global host
     if not gameStarted:
         gameStarted = True
-        bot.send_message(message.chat.id, "Vai entrar no ar a casa mais vigiada do Brasil! \nLogo após os comerciais de " + str(adTime) + " segundos!\nApertem /join para entrar!")
+        bot.send_message(message.chat.id, "Vai entrar no ar o chat mais vigiado do Brasil! \nLogo após os comerciais de " + str(adTime) + " segundos!\nApertem /join para entrar!")
         call_ad()
         while adOnAir:
             pass
@@ -414,6 +394,7 @@ def call_ad():
             adOnAir = False
 
 def list_brothers(message):
+    bot.send_message(message.chat.id, "Brothers: ")
     for person in brothersInGame:
         bot.send_message(message.chat.id, person.name + ", " + person.nickname)
 
