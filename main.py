@@ -52,7 +52,7 @@ gameOrderFixed = list()
 itensRetirados = list()
 
 
-fluxo = ['resumo','prova_lider','prova_anjo','salva','monstro','indicacao_lider','votacao_casa', 'paredao','eliminação']
+fluxo = ['resumo','prova_lider','prova_anjo','salva','monstro','indicacao_lider','votacao_casa', 'paredao','eliminação', 'reset_stats']
 # tiposProvas = ['sorte','conhecimento']
 allTiposProvas = ['sorte']
 
@@ -74,6 +74,12 @@ allResumo = list()
 with open(os.path.join(THIS_FOLDER, 'resumo.txt'), encoding="utf8") as myfile:
     for line in myfile:
         allResumo.append(line.replace("\n",""))
+myfile.close()
+
+allEliminacao = list()
+with open(os.path.join(THIS_FOLDER, 'eliminacao.txt'), encoding="utf8") as myfile:
+    for line in myfile:
+        allEliminacao.append(line.replace("\n",""))
 myfile.close()
 
 thiagofotos = list()
@@ -502,6 +508,9 @@ def entra_fluxo(message):
             elif evento == 'eliminação':
                 isEvento = True
                 eliminacao(message)
+            elif evento == 'reset_stats':
+                isEvento = True
+                reset_stats(message)
             else:
                 bot.send_message(message.chat.id, "Erro! Fluxo inexistente!")
 
@@ -645,7 +654,7 @@ def paredao(message):
     bot.send_message(message.chat.id, "Os emparedados da semana são: ")
     for brother in brothersInGame:
         if brother.isEmparedado:
-            bot.send_message(message.chat.id, brother.name + ', ' brother.nickname)
+            bot.send_message(message.chat.id, brother.name + ', ' + brother.nickname)
 
     bot.send_message(message.chat.id, "Está aberta a votação do público!")
 
@@ -654,15 +663,48 @@ def paredao(message):
 
 
 def eliminacao(message):
-    bot.send_message(message.chat.id, "Eliminação não foi implementada: ")
-    eliminado = ramdom.choice(brothersInGame)
+    global brothersInGame
+    global isEvento
+    if host == 'thiago':
+        bot.send_photo(message.chat.id, random.choice(thiagofotos))
+    elif host == 'boninho':
+        bot.send_photo(message.chat.id, random.choice(boninhofotos))
+    elif host == 'bial':
+        bot.send_photo(message.chat.id, random.choice(bialfotos))
+
+    bot.send_message(message.chat.id, "A votação está encerrada!")
+    eliminado = random.choice(brothersInGame)
     while not eliminado.isEmparedado:
         eliminado = ramdom.choice(brothersInGame)
 
-    round(random.uniform(2.5,22.5), 2))
-    bot.send_message(message.chat.id, "Eliminação não foi implementada: ")
+    fraseEliminacao = ramdom.choice(allEliminacao)
+    fraseEliminacao = fraseEliminacao.replace('JOGADOR1', eliminado.nome)
 
+    bot.send_message(message.chat.id, fraseEliminacao)
+    bot.send_message(message.chat.id, eliminado.name + ', ' + eliminado.nickname + ': ' + round(random.uniform(33.4,100), 2) + '% dos votos')
 
+    brothersInGame.remove(eliminado)
+
+    isEvento = False
+
+def reset_stats(message):
+    global brothersInGame
+    global isEvento
+
+    for brother in brothersInGame:
+        brother.acabaLider()
+        brother.acabaAnjo()
+        brother.acabaSalvo()
+        brother.acabaMonstro()
+        brother.acabaEmparedado()
+        brother.zeraVoto()
+        brother.zeraVotou()
+        brother.zeraSalvou()
+        brother.zeraIndicou()
+        brother.zeraMonstrou()
+        brother.zeraDesempatou()
+
+    isEvento = False
 
 
 
