@@ -36,6 +36,7 @@ isEvento = False
 global quantEmparedados
 quantEmparedados = 0
 global host
+global isFinal
 
 #lists
 global palavroes
@@ -43,16 +44,18 @@ palavroes = ['caralho','puta', 'pqp', 'cu', 'buceta', 'pau']
 global gameOrder
 global gameOrderFixed
 global brothersInGame
+global brothersEliminados
 global allHosts
 allHosts = ['bial','thiago','boninho']
 
+brothersEliminados = list()
 brothersInGame = list()
 gameOrder = list()
 gameOrderFixed = list()
 itensRetirados = list()
 
 
-fluxo = ['resumo','prova_lider','prova_anjo','salva','monstro','indicacao_lider','votacao_casa', 'paredao','eliminação', 'reset_stats']
+fluxo = ['resumo','prova_lider','prova_anjo','salva','monstro','indicacao_lider','votacao_casa', 'paredao','eliminação', 'reset_stats', 'checa_final']
 # tiposProvas = ['sorte','conhecimento']
 allTiposProvas = ['sorte']
 
@@ -107,6 +110,7 @@ class brother():
         self.name = name
         self.id = id
         self.nickname = random.choice(allNicknames)
+        self.fullname = self.name + ', '+ self.nickname
         self.isLider = False
         self.isAnjo = False
         self.isSalvo = False
@@ -233,12 +237,14 @@ def send_start(message):
     global gameOn
     global gameStarted
     global host
+    global isFinal
     if not gameStarted:
         gameStarted = True
         bot.send_message(message.chat.id, "Vai entrar no ar o chat mais vigiado do Brasil! \nLogo após os comerciais de " + str(adTime) + " segundos!\nApertem /join para entrar!")
         call_ad()
         while adOnAir:
             pass
+        isFinal = False
         gameOn = True
         host = random.choice(allHosts)
         bot.send_message(message.chat.id, "Começando mais uma temporada de Big Brother Telegram, o chat mais vigiado do Brasil!\nSou " + host.title() + ", o seu apresentador essa noite!")
@@ -396,7 +402,7 @@ def call_ad():
 def list_brothers(message):
     bot.send_message(message.chat.id, "Brothers: ")
     for person in brothersInGame:
-        bot.send_message(message.chat.id, person.name + ", " + person.nickname)
+        bot.send_message(message.chat.id, person.fullname)
 
 def sorteio_ordem(message):
     allPeople = brothersInGame.copy()
@@ -462,7 +468,10 @@ def entra_fluxo(message):
             while isEvento:
                 pass
             # FALTA implementar switch-case da maneira certa
-            if evento == 'resumo':
+            if isFinal:
+                isEvento = True
+                final(message)
+            elif evento == 'resumo':
                 isEvento = True
                 resumo_semana(message)
             elif evento == 'prova_lider':
@@ -492,6 +501,9 @@ def entra_fluxo(message):
             elif evento == 'reset_stats':
                 isEvento = True
                 reset_stats(message)
+            elif evento == 'checa_final':
+                isEvento = True
+                checa_final(message)
             else:
                 bot.send_message(message.chat.id, "Erro! Fluxo inexistente!")
 
@@ -519,9 +531,6 @@ def resumo_semana(message):
         time.sleep(1)
     time.sleep(3)
     isEvento = False
-
-
-
 
 
 def prova(message, provaDeQue):
@@ -562,6 +571,7 @@ def anjo_monstro(message):
             menuKeyboard.add(types.InlineKeyboardButton(brother.name, callback_data= 'monstro' + brother.id))
     bot.send_message(message.chat.id, "Escolha um: ", reply_markup=menuKeyboard)
 
+
 def indicacao_lider(message):
     bot.send_message(message.chat.id, "Líder, está na sua vez. Quem você coloca no paredão?")
     menuKeyboard = types.InlineKeyboardMarkup()
@@ -569,6 +579,7 @@ def indicacao_lider(message):
         if (not brother.isAnjo) and (not brother.isLider):
             menuKeyboard.add(types.InlineKeyboardButton(brother.name, callback_data= 'indicado' + brother.id))
     bot.send_message(message.chat.id, "Escolha um: ", reply_markup=menuKeyboard)
+
 
 def votacao_casa(message):
     global brothersInGame
@@ -578,7 +589,7 @@ def votacao_casa(message):
     menuKeyboard = types.InlineKeyboardMarkup()
     for brother in brothersInGame:
         if (not brother.isAnjo) and (not brother.isLider):
-            menuKeyboard.add(types.InlineKeyboardButton(brother.name, callback_data= 'voto' + brother.id))
+            menuKeyboard.add(types.InlineKeyboardButton(brother.fullname, callback_data= 'voto' + brother.id))
     bot.send_message(message.chat.id, "Escolha um: ", reply_markup=menuKeyboard)
 
     while any(x.votou == False.message.chat.id for x in brothersInGame):
@@ -618,6 +629,7 @@ def votacao_casa(message):
         quantEmparedados += 1
         lider_desempata(message, desempate2)
 
+
 def lider_desempata(message, listaDesempate):
 
     bot.send_message(message.chat.id, "Temos um empates de " + len(listaDesempate) + '. O líder irá decidir quem vai para o paredão.')
@@ -630,12 +642,13 @@ def lider_desempata(message, listaDesempate):
 
     bot.send_message(message.chat.id, "Líder,Escolha um: ", reply_markup=menuKeyboard)
 
+
 def paredao(message):
     global isEvento
     bot.send_message(message.chat.id, "Os emparedados da semana são: ")
     for brother in brothersInGame:
         if brother.isEmparedado:
-            bot.send_message(message.chat.id, brother.name + ', ' + brother.nickname)
+            bot.send_message(message.chat.id, brother.fullname)
 
     bot.send_message(message.chat.id, "Está aberta a votação do público!")
 
@@ -646,6 +659,8 @@ def paredao(message):
 def eliminacao(message):
     global brothersInGame
     global isEvento
+    global brothersEliminados
+
     if host == 'thiago':
         bot.send_photo(message.chat.id, random.choice(thiagofotos))
     elif host == 'boninho':
@@ -662,11 +677,13 @@ def eliminacao(message):
     fraseEliminacao = fraseEliminacao.replace('JOGADOR1', eliminado.nome)
 
     bot.send_message(message.chat.id, fraseEliminacao)
-    bot.send_message(message.chat.id, eliminado.name + ', ' + eliminado.nickname + ': ' + round(random.uniform(33.4,100), 2) + '% dos votos')
+    bot.send_message(message.chat.id, eliminado.fullname + ': ' + round(random.uniform(33.4,100), 2) + '% dos votos')
 
+    brothersEliminados.append(eliminado)
     brothersInGame.remove(eliminado)
 
     isEvento = False
+
 
 def reset_stats(message):
     global brothersInGame
@@ -686,6 +703,45 @@ def reset_stats(message):
         brother.zeraDesempatou()
 
     isEvento = False
+
+
+def checa_final(message):
+    global isFinal
+    global iEvento
+
+    if len(brothersInGame) == 3:
+        isFinal = True
+
+    iEvento = False
+
+def final(message):
+    bot.send_message(message.chat.id, "Estamos na final de mais um programa! ")
+    bot.send_message(message.chat.id, "Eliminados, agora é vossa vez de participar! Votem em quem você acha que deveria ganhar")
+    menuKeyboard = types.InlineKeyboardMarkup()
+    for brother in brothersInGame:
+        menuKeyboard.add(types.InlineKeyboardButton(brother.fullname, callback_data= 'final' + brother.id))
+
+    while any(x.votou == False.message.chat.id for x in brothersEliminados):
+        pass
+
+    brothersInGame.sort(key=lambda x: x.votos, reverse=True)
+
+    desempate = list()
+    aux = 0
+    for brother in brothersInGame:
+        if (not brother.isAnjo) and (not brother.isLider):
+            if aux == 0:
+                desempate.append(brother.id)
+            else:
+                if brother.votos == desempate[0].votos:
+                    desempate.append(brother.id)
+            aux += 1
+
+    ganhador = random.choice(desempate)
+    bot.send_message(message.chat.id, "O ganhador do Big Brother Telegram 2020 é:  ")
+    time.sleep(3)
+    bot.send_message(message.chat.id, "🏆🏆🏆 " + ganhador.fullname + " 🏆🏆🏆")
+
 
 
 
