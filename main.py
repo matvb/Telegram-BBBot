@@ -380,13 +380,14 @@ def process_callback_lose(query):
         quantEmparedados += 1
         brotherLider.jaIndicou()
         bot.edit_message_text( brotherLider.name + " fez sua escolha. " + brotherIndicado.name + ", você está no paredão!", query.message.chat.id, query.message.message_id, reply_markup=types.InlineKeyboardMarkup())
+        isEvento = False
     else:
       bot.send_message(query.message.chat.id, "Não é tua vez! Menos 500 estalecas!")
 
 @bot.callback_query_handler(lambda query: ('voto' in query.data) and isEvento)
 def process_callback_lose(query):
     if any(x.id == query.from_user.id for x in brothersInGame):
-        brotherVotou = next(brother for brother in brothersInGame if brother.id == query.message.chat.id)
+        brotherVotou = next(brother for brother in brothersInGame if brother.id == query.from_user.id)
         if (not brotherVotou.votou) and (not brotherVotou.isMonstro):
             brotherVotou.jaVotou()
             brotherVotado = next(brother for brother in brothersInGame if str(brother.id) == query.data.replace('voto',''))
@@ -613,7 +614,7 @@ def indicacao_lider(message):
     bot.send_message(message.chat.id, "Líder " + brotherLider.name + ", está na sua vez. Quem você coloca no paredão?")
     menuKeyboard = types.InlineKeyboardMarkup()
     for brother in brothersInGame:
-        if (not brother.isAnjo) and (not brother.isLider):
+        if (not brother.isSalvo) and (not brother.isLider):
             menuKeyboard.add(types.InlineKeyboardButton(brother.name, callback_data= 'indicado' + str(brother.id)))
     bot.send_message(message.chat.id, "Escolha um: ", reply_markup=menuKeyboard)
 
@@ -626,11 +627,11 @@ def votacao_casa(message):
     bot.send_message(message.chat.id, "Agora é com vocês casa, está na hora de votar. Quem vocês querem que vá para o paredão?")
     menuKeyboard = types.InlineKeyboardMarkup()
     for brother in brothersInGame:
-        if (not brother.isAnjo) and (not brother.isLider):
+        if (not brother.isSalvo) and (not brother.isLider) and (not brother.isEmparedado):
             menuKeyboard.add(types.InlineKeyboardButton(brother.fullname, callback_data= 'voto' + str(brother.id)))
     bot.send_message(message.chat.id, "Escolha um: ", reply_markup=menuKeyboard)
 
-    while any(x.votou == False.message.chat.id for x in brothersInGame):
+    while any(brother.votou == False for brother in brothersInGame):
         pass
 
     brothersInGame.sort(key=lambda x: x.votos, reverse=True)
@@ -639,17 +640,18 @@ def votacao_casa(message):
     aux = 0
     bot.send_message(message.chat.id, "Votos: ")
     for brother in brothersInGame:
-        if (not brother.isAnjo) and (not brother.isLider):
+        if (not brother.isSalvo) and (not brother.isLider) and (not brother.isEmparedado):
             if aux == 0:
                 desempate1.append(brother.id)
             else:
-                if brother.votos == desempate1[0].votos:
+                if brother.votos == brothersInGame[0].votos:
                     desempate1.append(brother.id)
                 else:
-                    if aux == 1:
+                    if len(desempate2) == 0:
                         desempate2.append(brother.id)
                     else:
-                        if brother.votos == desempate2[0].votos:
+                        segundoMaisVotado = next(brother for brother in brothersInGame if brother.id == desempate2[0])
+                        if brother.votos == segundoMaisVotado.votos:
                             desempate2.append(brother.id)
 
             aux += 1
@@ -672,7 +674,7 @@ def votacao_casa(message):
 def lider_desempata(message, listaDesempate):
     global isEvento
 
-    bot.send_message(message.chat.id, "Temos um empates de " + len(listaDesempate) + '. O líder irá decidir quem vai para o paredão.')
+    bot.send_message(message.chat.id, "Temos um empates de " + str(len(listaDesempate)) + '. O líder irá decidir quem vai para o paredão.')
 
     menuKeyboard = types.InlineKeyboardMarkup()
     for id in listaDesempate:
@@ -716,9 +718,9 @@ def eliminacao(message):
     bot.send_message(message.chat.id, "A votação está encerrada!")
     eliminado = random.choice(brothersInGame)
     while not eliminado.isEmparedado:
-        eliminado = ramdom.choice(brothersInGame)
+        eliminado = random.choice(brothersInGame)
 
-    fraseEliminacao = ramdom.choice(allEliminacao)
+    fraseEliminacao = random.choice(allEliminacao)
     fraseEliminacao = fraseEliminacao.replace('JOGADOR1', eliminado.name)
 
     bot.send_message(message.chat.id, fraseEliminacao)
@@ -751,7 +753,7 @@ def final(message):
     for brother in brothersInGame:
         menuKeyboard.add(types.InlineKeyboardButton(brother.fullname, callback_data= 'final' + str(brother.id)))
 
-    while any(x.votou == False.message.chat.id for x in brothersEliminados):
+    while any(brother.votou == False for brother in brothersEliminados):
         pass
 
     brothersInGame.sort(key=lambda x: x.votos, reverse=True)
@@ -759,7 +761,7 @@ def final(message):
     desempate = list()
     aux = 0
     for brother in brothersInGame:
-        if (not brother.isAnjo) and (not brother.isLider):
+        if (not brother.isSalvo) and (not brother.isLider) and (not brother.isEmparedado):
             if aux == 0:
                 desempate.append(brother.id)
             else:
@@ -788,10 +790,12 @@ if updates:
 #     except:
 #         isError = True
 
-try:
-    bot.polling(interval=10, none_stop=False)
-except:
-    isError = True
+# try:
+#     bot.polling(interval=10, none_stop=False)
+# except:
+#     isError = True
+
+bot.infinity_polling(True)
 
 @bot.message_handler(lambda error: isError)
 def error(message):
