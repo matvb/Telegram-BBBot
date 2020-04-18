@@ -40,7 +40,6 @@ global isFinal
 global minBrothers
 minBrothers = 5
 
-
 #lists
 global palavroes
 palavroes = ['caralho','puta', 'pqp', 'cu', 'buceta', 'pau']
@@ -193,17 +192,17 @@ class brother():
         self.indicou = False
 
     def zeraTudo(self):
-            self.isLider = False
-            self.isAnjo = False
-            self.isSalvo = False
-            self.isEmparedado = False
-            self.isMonstro = False
-            self.votos = 0
-            self.votou = False
-            self.salvou = False
-            self.monstrou = False
-            self.desempatou = False
-            self.indicou = False
+        self.isLider = False
+        self.isAnjo = False
+        self.isSalvo = False
+        self.isEmparedado = False
+        self.isMonstro = False
+        self.votos = 0
+        self.votou = False
+        self.salvou = False
+        self.monstrou = False
+        self.desempatou = False
+        self.indicou = False
 
 
 
@@ -318,7 +317,7 @@ def process_callback_win(query):
         isEvento = False
         itensRetirados = list()
     else:
-      bot.send_message(query.message.chat.id, "Não é tua vez! Menos 500 estalecas!")
+        bot.send_message(query.message.chat.id, "Não é tua vez! Menos 500 estalecas!")
 
 # escolhei o botão errado
 @bot.callback_query_handler(lambda query: ('loser' in query.data) and isProva)
@@ -407,7 +406,6 @@ def process_callback_lose(query):
             brotherVotou.jaVotou()
             brotherVotado = next(brother for brother in brothersInGame if brother.id == query.data.replace('voto',''))
             brotherVotado.recebeVoto()
-
 
 
 def call_ad():
@@ -713,7 +711,6 @@ def reset_stats(message):
     isEvento = False
 
 
-
 def final(message):
     global brothersInGame
     global gameStarted
@@ -748,7 +745,6 @@ def final(message):
     brothersInGame = list()
     gameStarted = False
     gameOn = False
-
 
 
 updates = bot.get_updates()
