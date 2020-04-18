@@ -359,11 +359,11 @@ def process_callback_lose(query):
 
     brotherAnjo = next(brother for brother in brothersInGame if brother.isAnjo == True)
     if(query.from_user.id == brotherAnjo.id) and (not brotherAnjo.monstrou):
-        brotherMontro = next(brother for brother in brothersInGame if str(brother.id) == query.data.replace('monstro',''))
-        brotherMontro.viraMonstro()
-        brotherMontro.jaVotou()
+        brotherMonstro = next(brother for brother in brothersInGame if str(brother.id) == query.data.replace('monstro',''))
+        brotherMonstro.viraMonstro()
+        brotherMonstro.jaVotou()
         brotherAnjo.jaMonstrou()
-        bot.edit_message_text( brotherAnjo.name + " deu o montro para " + brotherMontro.name + "!", query.message.chat.id, query.message.message_id, reply_markup=types.InlineKeyboardMarkup())
+        bot.edit_message_text( brotherAnjo.name + " deu o monstro para " + brotherMonstro.name + "!", query.message.chat.id, query.message.message_id, reply_markup=types.InlineKeyboardMarkup())
         isEvento = False
     else:
       bot.send_message(query.message.chat.id, "Não é tua vez! Menos 500 estalecas!")
@@ -600,7 +600,7 @@ def anjo_salva(message):
 
 def anjo_monstro(message):
     brotherAnjo = next(brother for brother in brothersInGame if brother.isAnjo == True)
-    bot.send_message(message.chat.id, "Anjo " + brotherAnjo.name + ", quem você bota de monstro essa rodada?\nLembrando que o montro não participa da votação da casa!")
+    bot.send_message(message.chat.id, "Anjo " + brotherAnjo.name + ", quem você bota de monstro essa rodada?\nLembrando que o monstro não participa da votação da casa!")
 
     menuKeyboard = types.InlineKeyboardMarkup()
     for brother in brothersInGame:
