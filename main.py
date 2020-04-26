@@ -506,30 +506,39 @@ def entra_fluxo(message):
                 pass
             # FALTA implementar switch-case da maneira certa
             if evento == 'resumo':
+                time.sleep(2)
                 isEvento = True
                 resumo_semana(message)
             elif evento == 'prova_lider':
+                time.sleep(2)
                 isEvento = True
                 prova(message, 'líder')
             elif  evento == 'prova_anjo':
+                time.sleep(2)
                 isEvento = True
                 prova(message, 'anjo')
             elif evento == 'salva':
+                time.sleep(2)
                 isEvento = True
                 anjo_salva(message)
             elif evento == 'monstro':
+                time.sleep(2)
                 isEvento = True
                 anjo_monstro(message)
             elif evento == 'indicacao_lider':
+                time.sleep(2)
                 isEvento = True
                 indicacao_lider(message)
             elif evento == 'votacao_casa':
+                time.sleep(2)
                 isEvento = True
                 votacao_casa(message)
             elif evento == 'paredao':
+                time.sleep(2)
                 isEvento = True
                 paredao(message)
             elif evento == 'eliminação':
+                time.sleep(2)
                 isEvento = True
                 eliminacao(message)
             elif evento == 'reset_stats':
@@ -562,7 +571,7 @@ def resumo_semana(message):
         frase = frase.replace('JOG1',brother.name[:3]).replace('JOG2',brother2.name[-3:])
         bot.send_message(message.chat.id, frase)
         time.sleep(1)
-    time.sleep(3)
+    time.sleep(1)
     isEvento = False
 
 
@@ -593,7 +602,7 @@ def anjo_salva(message):
 
     menuKeyboard = types.InlineKeyboardMarkup()
     for brother in brothersInGame:
-        if not brother.isAnjo:
+        if (not brother.isAnjo) and  (not brother.isLider):
             menuKeyboard.add(types.InlineKeyboardButton(brother.name, callback_data= 'salva' + str(brother.id)))
     bot.send_message(message.chat.id, "Escolha um: ", reply_markup=menuKeyboard)
 
@@ -692,7 +701,7 @@ def lider_desempata(message, listaDesempate):
 
 def paredao(message):
     global isEvento
-    bot.send_message(message.chat.id, "Os emparedados da semana são: ")
+    bot.send_message(message.chat.id, "⚠️ Os emparedados da semana são: ")
     for brother in brothersInGame:
         if brother.isEmparedado:
             bot.send_message(message.chat.id, brother.fullname)
@@ -723,8 +732,8 @@ def eliminacao(message):
     fraseEliminacao = random.choice(allEliminacao)
     fraseEliminacao = fraseEliminacao.replace('JOGADOR1', eliminado.name)
 
-    bot.send_message(message.chat.id, fraseEliminacao)
-    bot.send_message(message.chat.id, eliminado.fullname + ': ' + str(round(random.uniform(33.4,100), 2)) + '% dos votos')
+    bot.send_message(message.chat.id, fraseEliminacao, parse_mode='HTML')
+    bot.send_message(message.chat.id, '🚫 Eliminado: ' + eliminado.fullname + ': ' + str(round(random.uniform(33.4,100), 2)) + '% dos votos')
     eliminado.zeraTudo()
     brothersEliminados.append(eliminado)
     brothersInGame.remove(eliminado)
@@ -748,10 +757,13 @@ def final(message):
     global gameOn
 
     bot.send_message(message.chat.id, "Estamos na final de mais um programa! ")
-    bot.send_message(message.chat.id, "Eliminados, agora é vossa vez de participar! Votem em quem você acha que deveria ganhar")
+    bot.send_message(message.chat.id, "Eliminados, agora é vossa vez de participar! Votem em quem você acha que deveria ser o mais novo 🔸 CAMPEÃO DO BIG BROTHER TELEGRAM! 🔸")
+        
     menuKeyboard = types.InlineKeyboardMarkup()
     for brother in brothersInGame:
         menuKeyboard.add(types.InlineKeyboardButton(brother.fullname, callback_data= 'final' + str(brother.id)))
+
+    bot.send_message(message.chat.id, "Votem:", reply_markup=menuKeyboard)
 
     while any(brother.votou == False for brother in brothersEliminados):
         pass
